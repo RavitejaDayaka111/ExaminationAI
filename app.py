@@ -6,7 +6,7 @@ app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "uploads"
 HISTORY_FILE = "history.json"
 
-# 🔑 Set your Gemini API Key
+#  Set your Gemini API Key
 genai.configure(api_key="AIzaSyBdqjnf_BeBwO1fWs-LMSPgkm3Z1qdpNwk")
 model = genai.GenerativeModel(model_name="models/gemini-2.5-pro")
 
