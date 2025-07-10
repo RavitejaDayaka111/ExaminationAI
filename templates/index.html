@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Exam AI Assistant</title>
+  <link rel="stylesheet" href="/static/style.css" />
+
+</head>
+<body>
+  <div class="sidebar">
+    <h2>🕘 History</h2>
+    <ul id="historyList"></ul>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <button onclick="toggleDarkMode()">🌓 Dark Mode</button>
+      <button onclick="startNewChat()">🆕 New Chat</button>
+    </div>
+
+    <div class="chatbox">
+      <textarea id="question" placeholder="Type your exam question here..."></textarea>
+
+      <div class="action-bar">
+        <input type="file" id="pdfFile" accept=".pdf" />
+        <button onclick="uploadPDF()">📄 Upload PDF</button>
+        <button onclick="sendQuestion()">Ask</button>
+      </div>
+
+      <div id="response">Your answer will appear here...</div>
+      <div id="pdfText"></div>
+    </div>
+  </div>
+<script>
+let historyData = [];
+
+function toggleDarkMode() {
+  document.body.classList.toggle("dark");
+}
+
+function startNewChat() {
+  document.getElementById("question").value = "";
+  document.getElementById("response").innerHTML = "";
+}
+
+async function loadHistory() {
+  const res = await fetch("/history");
+  const data = await res.json();
+  historyData = data;
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+  data.forEach((item, i) => {
+    const li = document.createElement("li");
+
+    const textSpan = document.createElement("span");
+    textSpan.innerText = `📝 ${item.key}`;
+    textSpan.style.cursor = "pointer";
+    textSpan.onclick = () => {
+      document.getElementById("question").value = item.question;
+      document.getElementById("response").innerHTML = item.answer;
+    };
+
+    const delBtn = document.createElement("button");
+    delBtn.innerText = "🗑️";
+    delBtn.style.marginLeft = "10px";
+    delBtn.style.background = "red";
+    delBtn.style.color = "white";
+    delBtn.style.border = "none";
+    delBtn.style.borderRadius = "5px";
+    delBtn.onclick = async () => {
+      await fetch(`/delete/${item.id}`, { method: "DELETE" });
+      loadHistory();
+    };
+
+    li.appendChild(textSpan);
+    li.appendChild(delBtn);
+    list.appendChild(li);
+  });
+}
+
+async function sendQuestion() {
+  const question = document.getElementById("question").value;
+  const resBox = document.getElementById("response");
+  resBox.innerHTML = "⏳ Thinking...";
+  const response = await fetch("/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: question }),
+  });
+  const data = await response.json();
+  if (data.response) {
+    resBox.innerHTML = data.response;
+    loadHistory(); // Reload with new history
+  } else {
+    resBox.innerHTML = "⚠️ " + data.error;
+  }
+}
+
+async function uploadPDF() {
+  const file = document.getElementById("pdfFile").files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("pdf", file);
+  const res = await fetch("/upload", { method: "POST", body: formData });
+  const data = await res.json();
+  document.getElementById("pdfText").innerText = data.text || data.error;
+}
+
+// 🔁 Load history on startup
+window.onload = loadHistory;
+</script>
+
+</body>
+</html>
